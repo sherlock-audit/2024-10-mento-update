@@ -562,6 +562,9 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
       abi.encodeWithSelector(IDistributionHelper(distributionHelper).onDistribution.selector, amountToMint)
     );
 
+    vm.expectEmit(true, true, true, true);
+    emit ExpansionUBIMinted(exchangeId, amountToMint);
+
     uint256 amountMinted = expansionController.mintUBIFromExpansion(exchangeId);
     IGoodDollarExpansionController.ExchangeExpansionConfig memory config = expansionController.getExpansionConfig(
       exchangeId
@@ -661,6 +664,20 @@ contract GoodDollarExpansionControllerTest_mintRewardFromReserveRatio is GoodDol
 
     vm.prank(avatarAddress);
     expansionController.mintRewardFromReserveRatio(exchangeId, to, amountToMint);
+
+    assertEq(token.balanceOf(to), toBalanceBefore + amountToMint);
+  }
+
+  function test_mintRewardFromReserveRatio_whenCustomSlippage_shouldMintAndEmit() public {
+    uint256 amountToMint = 1000e18;
+    address to = makeAddr("To");
+    uint256 toBalanceBefore = token.balanceOf(to);
+
+    vm.expectEmit(true, true, true, true);
+    emit RewardMinted(exchangeId, to, amountToMint);
+
+    vm.prank(avatarAddress);
+    expansionController.mintRewardFromReserveRatio(exchangeId, to, amountToMint, 1);
 
     assertEq(token.balanceOf(to), toBalanceBefore + amountToMint);
   }
