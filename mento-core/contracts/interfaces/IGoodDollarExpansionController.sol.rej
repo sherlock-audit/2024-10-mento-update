@@ -1,0 +1,38 @@
+diff a/mento-core/contracts/interfaces/IGoodDollarExpansionController.sol b/mento-core/contracts/interfaces/IGoodDollarExpansionController.sol	(rejected hunks)
+@@ -130,8 +130,9 @@ interface IGoodDollarExpansionController {
+    * @notice Mints UBI as G$ tokens for a given pool from collected reserve interest.
+    * @param exchangeId The ID of the pool to mint UBI for.
+    * @param reserveInterest The amount of reserve tokens collected from interest.
++   * @return amountMinted The amount of G$ tokens minted.
+    */
+-  function mintUBIFromInterest(bytes32 exchangeId, uint256 reserveInterest) external;
++  function mintUBIFromInterest(bytes32 exchangeId, uint256 reserveInterest) external returns (uint256 amountMinted);
+ 
+   /**
+    * @notice Mints UBI as G$ tokens for a given pool by comparing the contract's reserve balance to the virtual balance.
+@@ -148,10 +149,24 @@ interface IGoodDollarExpansionController {
+   function mintUBIFromExpansion(bytes32 exchangeId) external returns (uint256 amountMinted);
+ 
+   /**
+-   * @notice Mints a reward of G$ tokens for a given pool.
++   * @notice Mints a reward of G$ tokens for a given pool. Defaults to no slippage protection.
+    * @param exchangeId The ID of the pool to mint a G$ reward for.
+    * @param to The address of the recipient.
+    * @param amount The amount of G$ tokens to mint.
+    */
+   function mintRewardFromReserveRatio(bytes32 exchangeId, address to, uint256 amount) external;
++
++  /**
++   * @notice Mints a reward of G$ tokens for a given pool.
++   * @param exchangeId The ID of the pool to mint a G$ reward for.
++   * @param to The address of the recipient.
++   * @param amount The amount of G$ tokens to mint.
++   * @param maxSlippagePercentage Maximum allowed percentage difference between new and old reserve ratio (0-100).
++   */
++  function mintRewardFromReserveRatio(
++    bytes32 exchangeId,
++    address to,
++    uint256 amount,
++    uint256 maxSlippagePercentage
++  ) external;
+ }
