@@ -1157,6 +1157,101 @@ contract GoodDollarExpansionControllerTest_mintRewardFromReserveRatio is GoodDol
 
     assertEq(token.balanceOf(to), toBalanceBefore + amountToMint);
   }
+
+  function test_mintRewardFromReserveRatio_whenCustomSlippage_shouldMintAndEmit() public {
+    uint256 amountToMint = 1000e18;
+    address to = makeAddr("To");
+    uint256 toBalanceBefore = token.balanceOf(to);
+
+    vm.expectEmit(true, true, true, true);
+    emit RewardMinted(exchangeId, to, amountToMint);
+
+    vm.prank(avatarAddress);
+    expansionController.mintRewardFromReserveRatio(exchangeId, to, amountToMint, 1);
+
+    assertEq(token.balanceOf(to), toBalanceBefore + amountToMint);
+  }
+}
+
+contract GoodDollarExpansionControllerIntegrationTest is GoodDollarExpansionControllerTest {
+  address brokerAddress = makeAddr("Broker");
+  GoodDollarExpansionController _expansionController;
+  GoodDollarExchangeProvider _exchangeProvider;
+  ERC20DecimalsMock reserveToken6DecimalsMock;
+
+  function setUp() public override {
+    super.setUp();
+    _exchangeProvider = new GoodDollarExchangeProvider(false);
+    _expansionController = new GoodDollarExpansionController(false);
+
+    _expansionController.initialize(address(_exchangeProvider), distributionHelper, reserveAddress, avatarAddress);
+    _exchangeProvider.initialize(brokerAddress, reserveAddress, address(_expansionController), avatarAddress);
+
+    reserveToken6DecimalsMock = new ERC20DecimalsMock("Reserve Token", "RES", 6);
+    IBancorExchangeProvider.PoolExchange memory poolExchange = IBancorExchangeProvider.PoolExchange({
+      reserveAsset: address(reserveToken6DecimalsMock),
+      tokenAddress: address(token),
+      tokenSupply: 7 * 1e9 * 1e18,
+      reserveBalance: 200_000 * 1e6,
+      reserveRatio: 0.2 * 1e8, // 20%
+      exitContribution: 0.1 * 1e8 // 10%
+    });
+
+    vm.mockCall(
+      reserveAddress,
+      abi.encodeWithSelector(IReserve(reserveAddress).isStableAsset.selector, address(token)),
+      abi.encode(true)
+    );
+    vm.mockCall(
+      reserveAddress,
+      abi.encodeWithSelector(IReserve(reserveAddress).isCollateralAsset.selector, address(reserveToken6DecimalsMock)),
+      abi.encode(true)
+    );
+    vm.prank(avatarAddress);
+    exchangeId = _exchangeProvider.createExchange(poolExchange);
+  }
+
+  function test_mintUBIFromReserveBalance_whenReserveTokenHas6Decimals_shouldMintAndEmit() public {
+    uint256 reserveInterest = 1000e6;
+    // amountToMint = reserveInterest * tokenSupply / reserveBalance
+    uint256 amountToMint = 35_000_000e18;
+
+    deal(address(reserveToken6DecimalsMock), reserveAddress, 200_000 * 1e6 + reserveInterest);
+    uint256 distributionHelperBalanceBefore = token.balanceOf(distributionHelper);
+
+    vm.expectEmit(true, true, true, true);
+    emit InterestUBIMinted(exchangeId, amountToMint);
+    uint256 amountMinted = _expansionController.mintUBIFromReserveBalance(exchangeId);
+
+    assertEq(amountMinted, amountToMint);
+    assertEq(token.balanceOf(distributionHelper), distributionHelperBalanceBefore + amountToMint);
+  }
+
+  function test_mintUBIFromInterest_whenReserveTokenHas6Decimals_shouldMintAndEmit() public {
+    uint256 reserveInterest = 1000e6;
+    // amountToMint = reserveInterest * tokenSupply / reserveBalance
+    uint256 amountToMint = 35_000_000e18;
+    address interestCollector = makeAddr("InterestCollector");
+
+    deal(address(reserveToken6DecimalsMock), interestCollector, reserveInterest);
+
+    vm.startPrank(interestCollector);
+    reserveToken6DecimalsMock.approve(address(_expansionController), reserveInterest);
+
+    uint256 interestCollectorBalanceBefore = reserveToken6DecimalsMock.balanceOf(interestCollector);
+    uint256 reserveBalanceBefore = reserveToken6DecimalsMock.balanceOf(reserveAddress);
+    uint256 distributionHelperBalanceBefore = token.balanceOf(distributionHelper);
+
+    vm.expectEmit(true, true, true, true);
+    emit InterestUBIMinted(exchangeId, amountToMint);
+    uint256 amountMinted = _expansionController.mintUBIFromInterest(exchangeId, reserveInterest);
+
+    assertEq(amountMinted, amountToMint);
+
+    assertEq(reserveToken6DecimalsMock.balanceOf(reserveAddress), reserveBalanceBefore + reserveInterest);
+    assertEq(token.balanceOf(distributionHelper), distributionHelperBalanceBefore + amountToMint);
+    assertEq(reserveToken6DecimalsMock.balanceOf(interestCollector), interestCollectorBalanceBefore - reserveInterest);
+  }
 }
 
 contract GoodDollarExpansionControllerIntegrationTest is GoodDollarExpansionControllerTest {
