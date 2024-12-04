@@ -8,7 +8,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
  import { BancorExchangeProvider } from "contracts/goodDollar/BancorExchangeProvider.sol";
  import { IExchangeProvider } from "contracts/interfaces/IExchangeProvider.sol";
  import { IBancorExchangeProvider } from "contracts/interfaces/IBancorExchangeProvider.sol";
-@@ -30,16 +32,22 @@ contract BancorExchangeProviderTest is Test {
+@@ -30,16 +32,23 @@ contract BancorExchangeProviderTest is Test {
    ERC20 public reserveToken;
    ERC20 public token;
    ERC20 public token2;
@@ -21,6 +21,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
    IBancorExchangeProvider.PoolExchange public poolExchange2;
 +  IBancorExchangeProvider.PoolExchange public poolExchange3;
 +  IBancorExchangeProvider.PoolExchange public poolExchange4;
++  IBancorExchangeProvider.PoolExchange public poolExchange5;
  
    function setUp() public virtual {
      reserveToken = new ERC20("cUSD", "cUSD");
@@ -31,7 +32,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
  
      brokerAddress = makeAddr("Broker");
      reserveAddress = makeAddr("Reserve");
-@@ -72,11 +98,22 @@ contract BancorExchangeProviderTest is Test {
+@@ -72,11 +108,22 @@ contract BancorExchangeProviderTest is Test {
        abi.encodeWithSelector(IReserve(reserveAddress).isStableAsset.selector, address(token2)),
        abi.encode(true)
      );
@@ -54,7 +55,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
    }
  
    function initializeBancorExchangeProvider() internal returns (BancorExchangeProvider) {
-@@ -164,12 +201,12 @@ contract BancorExchangeProviderTest_initilizerSettersGetters is BancorExchangePr
+@@ -164,12 +211,12 @@ contract BancorExchangeProviderTest_initilizerSettersGetters is BancorExchangePr
      bancorExchangeProvider.setExitContribution(exchangeId, 1e5);
    }
  
@@ -69,7 +70,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
    }
  
    function test_setExitContribution_whenSenderIsOwner_shouldUpdateAndEmit() public {
-@@ -452,19 +495,6 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
+@@ -452,19 +522,6 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
      });
    }
  
@@ -89,7 +90,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
    function test_getAmountIn_whenTokenInIsTokenAndAmountOutLargerThanReserveBalance_shouldRevert() public {
      bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
      vm.expectRevert("ERR_INVALID_AMOUNT");
-@@ -487,19 +517,15 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
+@@ -487,19 +544,15 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
      assertEq(amountIn, 0);
    }
  
@@ -112,7 +113,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
    }
  
    function test_getAmountIn_whenTokenInIsTokenAndReserveRatioIs100Percent_shouldReturnCorrectAmount() public {
-@@ -533,19 +559,6 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
+@@ -533,19 +586,6 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
      });
    }
  
@@ -132,7 +133,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
    function test_getAmountIn_whenTokenInIsReserveAssetAndAmountOutIsZero_shouldReturnZero() public {
      bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
      uint256 amountIn = bancorExchangeProvider.getAmountIn({
-@@ -591,12 +604,12 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
+@@ -591,12 +631,12 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
  
    function test_getAmountIn_whenTokenInIsToken_shouldReturnCorrectAmount() public {
      bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
@@ -150,7 +151,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
      uint256 amountIn = bancorExchangeProvider.getAmountIn({
        exchangeId: exchangeId,
        tokenIn: address(token),
-@@ -624,11 +637,12 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
+@@ -624,11 +664,12 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
    function test_getAmountIn_whenTokenInIsTokenAndAmountOutIsSmall_shouldReturnCorrectAmount() public {
      bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
      uint256 amountOut = 1e12; // 0.000001 token
@@ -167,7 +168,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
      uint256 expectedAmountIn = 1010101010108;
      uint256 amountIn = bancorExchangeProvider.getAmountIn({
        exchangeId: exchangeId,
-@@ -658,12 +672,12 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
+@@ -658,12 +699,12 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
    function test_getAmountIn_whenTokenInIsTokenAndAmountOutIsLarge_shouldReturnCorrectAmount() public {
      bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
      uint256 amountOut = 59000e18; // 59_000 since total reserve is 60k
@@ -185,7 +186,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
      uint256 amountIn = bancorExchangeProvider.getAmountIn({
        exchangeId: exchangeId,
        tokenIn: address(token),
-@@ -681,9 +695,8 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
+@@ -681,9 +722,8 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
      bancorExchangeProvider.setExitContribution(exchangeId, 1e6);
      bytes32 exchangeId2 = bancorExchangeProvider.createExchange(poolExchange2);
      bancorExchangeProvider.setExitContribution(exchangeId2, 0);
@@ -196,7 +197,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
      uint256 amountIn = bancorExchangeProvider.getAmountIn({
        exchangeId: exchangeId,
        tokenIn: address(token),
-@@ -691,17 +704,13 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
+@@ -691,17 +731,13 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
        amountOut: amountOut
      });
  
@@ -216,7 +217,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
    }
  
    function test_getAmountIn_whenDifferentTokenDecimals_shouldReturnCorrectAmount() public {
-@@ -998,18 +1007,6 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
+@@ -998,18 +1116,6 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
      });
    }
  
@@ -235,7 +236,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
    function test_getAmountOut_whenTokenInIsReserveAssetAndAmountInIsZero_shouldReturnZero() public {
      bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
      uint256 amountOut = bancorExchangeProvider.getAmountOut({
-@@ -1037,41 +1034,6 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
+@@ -1037,41 +1143,6 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
      assertEq(amountOut, expectedAmountOut);
    }
  
@@ -277,7 +278,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
    function test_getAmountOut_whenTokenInIsTokenAndAmountIsZero_shouldReturnZero() public {
      bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
      uint256 amountOut = bancorExchangeProvider.getAmountOut({
-@@ -1083,25 +1045,23 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
+@@ -1083,25 +1154,23 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
      assertEq(amountOut, 0);
    }
  
@@ -309,7 +310,15 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
      uint256 expectedAmountOut = 198000000000000000;
      uint256 amountOut = bancorExchangeProvider.getAmountOut({
        exchangeId: exchangeId,
-@@ -1128,13 +1089,13 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
+@@ -1109,6 +1178,7 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
+       tokenOut: address(reserveToken),
+       amountIn: amountIn
+     });
++
+     assertEq(amountOut, expectedAmountOut);
+   }
+ 
+@@ -1128,13 +1198,13 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
  
    function test_getAmountOut_whenTokenInIsToken_shouldReturnCorrectAmount() public {
      bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
@@ -328,7 +337,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
      uint256 amountOut = bancorExchangeProvider.getAmountOut({
        exchangeId: exchangeId,
        tokenIn: address(token),
-@@ -1162,11 +1123,11 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
+@@ -1162,11 +1232,11 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
    function test_getAmountOut_whenTokenInIsTokenAndAmountOutIsSmall_shouldReturnCorrectAmount() public {
      bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
      uint256 amountIn = 1e12; // 0.000001 token
@@ -344,7 +353,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
      uint256 expectedAmountOut = 989999999993;
      uint256 amountOut = bancorExchangeProvider.getAmountOut({
        exchangeId: exchangeId,
-@@ -1195,12 +1156,13 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
+@@ -1195,12 +1265,13 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
    function test_getAmountOut_whenTokenInIsTokenAndAmountInIsLarge_shouldReturnCorrectAmount() public {
      bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
      uint256 amountIn = 299_000 * 1e18; // 299,000 tokens only 300k supply
@@ -363,7 +372,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
      uint256 amountOut = bancorExchangeProvider.getAmountOut({
        exchangeId: exchangeId,
        tokenIn: address(token),
-@@ -1208,8 +1170,8 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
+@@ -1208,8 +1279,8 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
        amountIn: amountIn
      });
  
@@ -374,7 +383,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
    }
  
    function test_getAmountOut_whenTokenInIsTokenAndExitContributionIsNonZero_shouldReturnCorrectAmount(
-@@ -1223,6 +1185,7 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
+@@ -1223,6 +1294,7 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
      bancorExchangeProvider.setExitContribution(exchangeId2, 0);
  
      amountIn = bound(amountIn, 100, 299_000 * 1e18);
@@ -382,7 +391,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
      uint256 amountOut = bancorExchangeProvider.getAmountOut({
        exchangeId: exchangeId,
        tokenIn: address(token),
-@@ -1233,9 +1196,9 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
+@@ -1233,9 +1305,9 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
        exchangeId: exchangeId2,
        tokenIn: address(token2),
        tokenOut: address(reserveToken),
@@ -394,7 +403,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
    }
  
    function test_getAmountOut_whenDifferentTokenDecimals_shouldReturnCorrectAmount() public {
-@@ -1554,6 +1526,14 @@ contract BancorExchangeProviderTest_swapIn is BancorExchangeProviderTest {
+@@ -1554,6 +1685,14 @@ contract BancorExchangeProviderTest_swapIn is BancorExchangeProviderTest {
      bancorExchangeProvider.swapIn(exchangeId, address(token), address(token), 1e18);
    }
  
@@ -409,7 +418,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
    function test_swapIn_whenTokenInIsReserveAsset_shouldSwapIn() public {
      BancorExchangeProvider bancorExchangeProvider = initializeBancorExchangeProvider();
      uint256 amountIn = 1e18;
-@@ -1601,6 +1610,68 @@ contract BancorExchangeProviderTest_swapIn is BancorExchangeProviderTest {
+@@ -1601,6 +1768,121 @@ contract BancorExchangeProviderTest_swapIn is BancorExchangeProviderTest {
      assertEq(reserveBalanceAfter, reserveBalanceBefore - amountOut);
      assertEq(tokenSupplyAfter, tokenSupplyBefore - amountIn);
    }
@@ -419,8 +428,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
 +    uint256 amountIn = 1e18;
 +
 +    bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange4);
-+    uint256 reserveBalanceBefore = poolExchange4.reserveBalance;
-+    uint256 tokenSupplyBefore = poolExchange4.tokenSupply;
++    (, , uint256 tokenSupplyBefore, uint256 reserveBalanceBefore, , ) = bancorExchangeProvider.exchanges(exchangeId);
 +
 +    uint256 expectedAmountOut = bancorExchangeProvider.getAmountOut({
 +      exchangeId: exchangeId,
@@ -475,10 +483,64 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
 +    // we allow up to 0.1% difference due to precision loss on exitContribution accounting
 +    assertApproxEqRel(amountOutInOneSell, amountOutInMultipleSells, 1e18 * 0.001);
 +  }
++
++  function test_swapIn_whenTokenOutIsTokenWith6Decimals_shouldRoundDownInFavorOfReserve() public {
++    BancorExchangeProvider bancorExchangeProvider = initializeBancorExchangeProvider();
++    uint256 amountIn = 55e18;
++
++    bytes32 exchangeId6Decimals = bancorExchangeProvider.createExchange(poolExchange4);
++    vm.prank(brokerAddress);
++    uint256 amountOut6Decimals = bancorExchangeProvider.swapIn(
++      exchangeId6Decimals,
++      address(reserveToken),
++      address(tokenWith6Decimals),
++      amountIn
++    );
++
++    bancorExchangeProvider.destroyExchange(exchangeId6Decimals, 0);
++    bytes32 exchangeId18Decimals = bancorExchangeProvider.createExchange(poolExchange1);
++    vm.prank(brokerAddress);
++    uint256 amountOut18Decimals = bancorExchangeProvider.swapIn(
++      exchangeId18Decimals,
++      address(reserveToken),
++      address(token),
++      amountIn
++    );
++
++    assertTrue(amountOut6Decimals * 1e12 < amountOut18Decimals);
++    assertEq(amountOut6Decimals, (amountOut18Decimals / 1e12));
++  }
++
++  function test_swapIn_whenTokenOutIsReserveAssetWith6Decimals_shouldRoundDownInFavorOfReserve() public {
++    BancorExchangeProvider bancorExchangeProvider = initializeBancorExchangeProvider();
++    uint256 amountIn = 55e18;
++
++    bytes32 exchangeId6Decimals = bancorExchangeProvider.createExchange(poolExchange3);
++    vm.prank(brokerAddress);
++    uint256 amountOut6Decimals = bancorExchangeProvider.swapIn(
++      exchangeId6Decimals,
++      address(token),
++      address(reserveTokenWith6Decimals),
++      amountIn
++    );
++
++    bancorExchangeProvider.destroyExchange(exchangeId6Decimals, 0);
++    bytes32 exchangeId18Decimals = bancorExchangeProvider.createExchange(poolExchange1);
++    vm.prank(brokerAddress);
++    uint256 amountOut18Decimals = bancorExchangeProvider.swapIn(
++      exchangeId18Decimals,
++      address(token),
++      address(reserveToken),
++      amountIn
++    );
++
++    assertTrue(amountOut6Decimals * 1e12 < amountOut18Decimals);
++    assertEq(amountOut6Decimals, (amountOut18Decimals / 1e12));
++  }
  }
  
  contract BancorExchangeProviderTest_swapOut is BancorExchangeProviderTest {
-@@ -1619,7 +1690,7 @@ contract BancorExchangeProviderTest_swapOut is BancorExchangeProviderTest {
+@@ -1619,7 +1901,7 @@ contract BancorExchangeProviderTest_swapOut is BancorExchangeProviderTest {
      bancorExchangeProvider.swapOut("0xexchangeId", address(reserveToken), address(token), 1e18);
    }
  
@@ -487,7 +549,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
      BancorExchangeProvider bancorExchangeProvider = initializeBancorExchangeProvider();
      bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
      vm.prank(brokerAddress);
-@@ -1627,7 +1698,7 @@ contract BancorExchangeProviderTest_swapOut is BancorExchangeProviderTest {
+@@ -1627,7 +1909,7 @@ contract BancorExchangeProviderTest_swapOut is BancorExchangeProviderTest {
      bancorExchangeProvider.swapOut(exchangeId, address(token2), address(token), 1e18);
    }
  
@@ -496,7 +558,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
      BancorExchangeProvider bancorExchangeProvider = initializeBancorExchangeProvider();
      bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
      vm.prank(brokerAddress);
-@@ -1643,6 +1714,14 @@ contract BancorExchangeProviderTest_swapOut is BancorExchangeProviderTest {
+@@ -1643,6 +1925,14 @@ contract BancorExchangeProviderTest_swapOut is BancorExchangeProviderTest {
      bancorExchangeProvider.swapOut(exchangeId, address(token), address(token), 1e18);
    }
  
@@ -511,7 +573,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
    function test_swapOut_whenTokenInIsReserveAsset_shouldSwapOut() public {
      BancorExchangeProvider bancorExchangeProvider = initializeBancorExchangeProvider();
      uint256 amountOut = 1e18;
-@@ -1690,4 +1798,58 @@ contract BancorExchangeProviderTest_swapOut is BancorExchangeProviderTest {
+@@ -1690,4 +2008,146 @@ contract BancorExchangeProviderTest_swapOut is BancorExchangeProviderTest {
      assertEq(reserveBalanceAfter, reserveBalanceBefore - amountOut);
      assertEq(tokenSupplyAfter, tokenSupplyBefore - amountIn);
    }
@@ -521,8 +583,7 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
 +    uint256 amountOut = 1e18;
 +
 +    bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange4);
-+    uint256 reserveBalanceBefore = poolExchange4.reserveBalance;
-+    uint256 tokenSupplyBefore = poolExchange4.tokenSupply;
++    (, , uint256 tokenSupplyBefore, uint256 reserveBalanceBefore, , ) = bancorExchangeProvider.exchanges(exchangeId);
 +
 +    uint256 expectedAmountIn = bancorExchangeProvider.getAmountIn({
 +      exchangeId: exchangeId,
@@ -568,5 +629,94 @@ diff a/mento-core/test/unit/goodDollar/BancorExchangeProvider.t.sol b/mento-core
 +    }
 +    // we allow up to 0.1% difference due to precision loss on exitContribution accounting
 +    assertApproxEqRel(amountInInOneBuy, amountInInMultipleBuys, 1e18 * 0.001);
++  }
++
++  function test_swapOut_whenTokenInIsTokenWith6Decimals_shouldRoundUpInFavorOfReserve() public {
++    BancorExchangeProvider bancorExchangeProvider = initializeBancorExchangeProvider();
++    uint256 amountOut = 55e18;
++
++    bytes32 exchangeId6Decimals = bancorExchangeProvider.createExchange(poolExchange4);
++    vm.prank(brokerAddress);
++    uint256 amountIn6Decimals = bancorExchangeProvider.swapOut(
++      exchangeId6Decimals,
++      address(tokenWith6Decimals),
++      address(reserveToken),
++      amountOut
++    );
++
++    bancorExchangeProvider.destroyExchange(exchangeId6Decimals, 0);
++    bytes32 exchangeId18Decimals = bancorExchangeProvider.createExchange(poolExchange1);
++    vm.prank(brokerAddress);
++    uint256 amountIn18Decimals = bancorExchangeProvider.swapOut(
++      exchangeId18Decimals,
++      address(token),
++      address(reserveToken),
++      amountOut
++    );
++
++    assertTrue(amountIn18Decimals < amountIn6Decimals * 1e12);
++    assertEq(amountIn6Decimals, (amountIn18Decimals / 1e12) + 1);
++  }
++
++  function test_swapOut_whenTokenInIsReserveAssetWith6Decimals_shouldRoundUpInFavorOfReserve() public {
++    BancorExchangeProvider bancorExchangeProvider = initializeBancorExchangeProvider();
++    uint256 amountOut = 55e18;
++
++    bytes32 exchangeId6Decimals = bancorExchangeProvider.createExchange(poolExchange3);
++    vm.prank(brokerAddress);
++    uint256 amountIn6Decimals = bancorExchangeProvider.swapOut(
++      exchangeId6Decimals,
++      address(reserveTokenWith6Decimals),
++      address(token),
++      amountOut
++    );
++
++    bancorExchangeProvider.destroyExchange(exchangeId6Decimals, 0);
++    bytes32 exchangeId18Decimals = bancorExchangeProvider.createExchange(poolExchange1);
++    vm.prank(brokerAddress);
++    uint256 amountIn18Decimals = bancorExchangeProvider.swapOut(
++      exchangeId18Decimals,
++      address(reserveToken),
++      address(token),
++      amountOut
++    );
++
++    assertTrue(amountIn18Decimals < amountIn6Decimals * 1e12);
++    assertEq(amountIn6Decimals, (amountIn18Decimals / 1e12) + 1);
++  }
++
++  function test_swapOut_whenTokenInHas6DecimalsButNoRoundingNeeded_shouldNotRoundUp() public {
++    BancorExchangeProvider bancorExchangeProvider = initializeBancorExchangeProvider();
++    bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
++
++    uint256 amountOut = bancorExchangeProvider.getAmountOut({
++      exchangeId: exchangeId,
++      tokenIn: address(token),
++      tokenOut: address(reserveToken),
++      amountIn: 15e17
++    });
++
++    vm.prank(brokerAddress);
++    uint256 amountIn18Decimals = bancorExchangeProvider.swapOut(
++      exchangeId,
++      address(token),
++      address(reserveToken),
++      amountOut
++    );
++
++    assertEq(amountIn18Decimals, 15e17);
++
++    bancorExchangeProvider.destroyExchange(exchangeId, 0);
++    exchangeId = bancorExchangeProvider.createExchange(poolExchange4);
++
++    vm.prank(brokerAddress);
++    uint256 amountIn6Decimals = bancorExchangeProvider.swapOut(
++      exchangeId,
++      address(tokenWith6Decimals),
++      address(reserveToken),
++      amountOut
++    );
++
++    assertEq(amountIn6Decimals, amountIn18Decimals / 1e12);
 +  }
  }

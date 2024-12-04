@@ -106,6 +106,33 @@ contract BancorExchangeProviderTest is Test {
       exitContribution: 1e8 * 0.01
     });
 
+    poolExchange3 = IBancorExchangeProvider.PoolExchange({
+      reserveAsset: address(reserveTokenWith6Decimals),
+      tokenAddress: address(token),
+      tokenSupply: 300_000 * 1e18,
+      reserveBalance: 60_000 * 1e6,
+      reserveRatio: 1e8 * 0.2,
+      exitContribution: 1e8 * 0.01
+    });
+
+    poolExchange4 = IBancorExchangeProvider.PoolExchange({
+      reserveAsset: address(reserveToken),
+      tokenAddress: address(tokenWith6Decimals),
+      tokenSupply: 300_000 * 1e6,
+      reserveBalance: 60_000 * 1e18,
+      reserveRatio: 1e8 * 0.2,
+      exitContribution: 1e8 * 0.01
+    });
+
+    poolExchange5 = IBancorExchangeProvider.PoolExchange({
+      reserveAsset: address(reserveTokenWith6Decimals),
+      tokenAddress: address(tokenWith6Decimals),
+      tokenSupply: 300_000 * 1e6,
+      reserveBalance: 60_000 * 1e6,
+      reserveRatio: 1e8 * 0.2,
+      exitContribution: 1e8 * 0.01
+    });
+
     vm.mockCall(
       reserveAddress,
       abi.encodeWithSelector(IReserve(reserveAddress).isStableAsset.selector, address(token)),
@@ -320,6 +347,12 @@ contract BancorExchangeProviderTest_createExchange is BancorExchangeProviderTest
     bancorExchangeProvider.createExchange(poolExchange1);
   }
 
+  function test_createExchange_whenReserveBalanceIsZero_shouldRevert() public {
+    poolExchange1.reserveBalance = 0;
+    vm.expectRevert("Reserve balance must be greater than 0");
+    bancorExchangeProvider.createExchange(poolExchange1);
+  }
+
   function test_createExchange_whenReserveAssetIsNotCollateral_shouldRevert() public {
     vm.mockCall(
       reserveAddress,
@@ -406,6 +439,23 @@ contract BancorExchangeProviderTest_createExchange is BancorExchangeProviderTest
 
     assertEq(bancorExchangeProvider.tokenPrecisionMultipliers(address(reserveToken)), 1);
     assertEq(bancorExchangeProvider.tokenPrecisionMultipliers(address(token)), 1);
+  }
+
+  function test_createExchange_whenTokensHasLessThan18Decimals_shouldCreateExchangeWithCorrectSupplyAndBalance()
+    public
+  {
+    bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange5);
+
+    IBancorExchangeProvider.PoolExchange memory poolExchange = bancorExchangeProvider.getPoolExchange(exchangeId);
+    assertEq(poolExchange.reserveAsset, poolExchange5.reserveAsset);
+    assertEq(poolExchange.tokenAddress, poolExchange5.tokenAddress);
+    assertEq(poolExchange.tokenSupply, poolExchange5.tokenSupply * 1e12);
+    assertEq(poolExchange.reserveBalance, poolExchange5.reserveBalance * 1e12);
+    assertEq(poolExchange.reserveRatio, poolExchange5.reserveRatio);
+    assertEq(poolExchange.exitContribution, poolExchange5.exitContribution);
+
+    assertEq(bancorExchangeProvider.tokenPrecisionMultipliers(address(reserveTokenWith6Decimals)), 1e12);
+    assertEq(bancorExchangeProvider.tokenPrecisionMultipliers(address(tokenWith6Decimals)), 1e12);
   }
 }
 
@@ -761,7 +811,7 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
       reserveAsset: address(reserveToken6),
       tokenAddress: address(stableToken18),
       tokenSupply: 100_000 * 1e18, // 100,000
-      reserveBalance: 50_000 * 1e18, // 50,000
+      reserveBalance: 50_000 * 1e6, // 50,000
       reserveRatio: 1e8 * 0.5, // 50%
       exitContribution: 0
     });
@@ -964,6 +1014,88 @@ contract BancorExchangeProviderTest_getAmountIn is BancorExchangeProviderTest {
 
     // we allow up to 1% difference due to precision loss
     assertApproxEqRel(reversedAmountOut, amountOut, 1e18 * 0.01);
+  }
+
+  function test_getAmountIn_whenTokenInIsTokenWith6TokenDecimals_shouldRoundUpInFavorOfReserve() public {
+    bytes32 exchangeId6Decimals = bancorExchangeProvider.createExchange(poolExchange4);
+
+    uint256 amountOut = 55e18;
+    uint256 amountIn6Decimals = bancorExchangeProvider.getAmountIn({
+      exchangeId: exchangeId6Decimals,
+      tokenIn: address(tokenWith6Decimals),
+      tokenOut: address(reserveToken),
+      amountOut: amountOut
+    });
+
+    bancorExchangeProvider.destroyExchange(exchangeId6Decimals, 0);
+    bytes32 exchangeId18Decimals = bancorExchangeProvider.createExchange(poolExchange1);
+
+    uint256 amountIn18Decimals = bancorExchangeProvider.getAmountIn({
+      exchangeId: exchangeId18Decimals,
+      tokenIn: address(token),
+      tokenOut: address(reserveToken),
+      amountOut: amountOut
+    });
+
+    assertTrue(amountIn18Decimals <= amountIn6Decimals * 1e12);
+    assertEq(amountIn6Decimals, (amountIn18Decimals / 1e12) + 1);
+  }
+
+  function test_getAmountIn_whenTokenInIsReserveAssetWith6TokenDecimals_shouldRoundUpInFavorOfReserve() public {
+    bytes32 exchangeId6Decimals = bancorExchangeProvider.createExchange(poolExchange3);
+
+    uint256 amountOut = 55e18;
+    uint256 amountIn6Decimals = bancorExchangeProvider.getAmountIn({
+      exchangeId: exchangeId6Decimals,
+      tokenIn: address(reserveTokenWith6Decimals),
+      tokenOut: address(token),
+      amountOut: amountOut
+    });
+
+    bancorExchangeProvider.destroyExchange(exchangeId6Decimals, 0);
+    bytes32 exchangeId18Decimals = bancorExchangeProvider.createExchange(poolExchange1);
+
+    uint256 amountIn18Decimals = bancorExchangeProvider.getAmountIn({
+      exchangeId: exchangeId18Decimals,
+      tokenIn: address(reserveToken),
+      tokenOut: address(token),
+      amountOut: amountOut
+    });
+
+    assertTrue(amountIn18Decimals <= amountIn6Decimals * 1e12);
+    assertEq(amountIn6Decimals, (amountIn18Decimals / 1e12) + 1);
+  }
+
+  function test_getAmountIn_whenTokenInHas6DecimalsButNoRoundingNeeded_shouldNotRoundUp() public {
+    bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange1);
+
+    uint256 amountOut = bancorExchangeProvider.getAmountOut({
+      exchangeId: exchangeId,
+      tokenIn: address(token),
+      tokenOut: address(reserveToken),
+      amountIn: 15e17
+    });
+
+    uint256 amountIn18Decimals = bancorExchangeProvider.getAmountIn({
+      exchangeId: exchangeId,
+      tokenIn: address(token),
+      tokenOut: address(reserveToken),
+      amountOut: amountOut
+    });
+
+    assertEq(amountIn18Decimals, 15e17);
+
+    bancorExchangeProvider.destroyExchange(exchangeId, 0);
+    bytes32 exchangeId6Decimals = bancorExchangeProvider.createExchange(poolExchange4);
+
+    uint256 amountIn6Decimals = bancorExchangeProvider.getAmountIn({
+      exchangeId: exchangeId6Decimals,
+      tokenIn: address(tokenWith6Decimals),
+      tokenOut: address(reserveToken),
+      amountOut: amountOut
+    });
+
+    assertEq(amountIn6Decimals, amountIn18Decimals / 1e12);
   }
 }
 
@@ -1250,7 +1382,7 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
       reserveAsset: address(reserveToken6),
       tokenAddress: address(stableToken18),
       tokenSupply: 100_000 * 1e18, // 100,000
-      reserveBalance: 50_000 * 1e18, // 50,000
+      reserveBalance: 50_000 * 1e6, // 50,000
       reserveRatio: 1e8 * 0.5, // 50%
       exitContribution: 0
     });
@@ -1453,6 +1585,56 @@ contract BancorExchangeProviderTest_getAmountOut is BancorExchangeProviderTest {
     // we allow up to 1% difference due to precision loss
     assertApproxEqRel(reversedAmountIn, amountIn, 1e18 * 0.01);
   }
+
+  function test_getAmountOut_whenTokenOutIsTokenWith6TokenDecimals_shouldRoundDownInFavorOfReserve() public {
+    bytes32 exchangeId6Decimals = bancorExchangeProvider.createExchange(poolExchange4);
+
+    uint256 amountIn = 55e18;
+    uint256 amountOut6Decimals = bancorExchangeProvider.getAmountOut({
+      exchangeId: exchangeId6Decimals,
+      tokenIn: address(reserveToken),
+      tokenOut: address(tokenWith6Decimals),
+      amountIn: amountIn
+    });
+
+    bancorExchangeProvider.destroyExchange(exchangeId6Decimals, 0);
+    bytes32 exchangeId18Decimals = bancorExchangeProvider.createExchange(poolExchange1);
+
+    uint256 amountOut18Decimals = bancorExchangeProvider.getAmountOut({
+      exchangeId: exchangeId18Decimals,
+      tokenIn: address(reserveToken),
+      tokenOut: address(token),
+      amountIn: amountIn
+    });
+
+    assertTrue(amountOut6Decimals * 1e12 < amountOut18Decimals);
+    assertEq(amountOut6Decimals, (amountOut18Decimals / 1e12));
+  }
+
+  function test_getAmountOut_whenTokenOutIsReserveAssetWith6TokenDecimals_shouldRoundDownInFavorOfReserve() public {
+    bytes32 exchangeId6Decimals = bancorExchangeProvider.createExchange(poolExchange3);
+
+    uint256 amountIn = 55e18;
+    uint256 amountOut6Decimals = bancorExchangeProvider.getAmountOut({
+      exchangeId: exchangeId6Decimals,
+      tokenIn: address(token),
+      tokenOut: address(reserveTokenWith6Decimals),
+      amountIn: amountIn
+    });
+
+    bancorExchangeProvider.destroyExchange(exchangeId6Decimals, 0);
+    bytes32 exchangeId18Decimals = bancorExchangeProvider.createExchange(poolExchange1);
+
+    uint256 amountOut18Decimals = bancorExchangeProvider.getAmountOut({
+      exchangeId: exchangeId18Decimals,
+      tokenIn: address(token),
+      tokenOut: address(reserveToken),
+      amountIn: amountIn
+    });
+
+    assertTrue(amountOut6Decimals * 1e12 < amountOut18Decimals);
+    assertEq(amountOut6Decimals, (amountOut18Decimals / 1e12));
+  }
 }
 
 contract BancorExchangeProviderTest_currentPrice is BancorExchangeProviderTest {
@@ -1474,6 +1656,15 @@ contract BancorExchangeProviderTest_currentPrice is BancorExchangeProviderTest {
     // formula: price = reserveBalance / tokenSupply * reserveRatio
     // calculation: 60_000 / 300_000 * 0.2 = 1
     uint256 expectedPrice = 1e18;
+    uint256 price = bancorExchangeProvider.currentPrice(exchangeId);
+    assertEq(price, expectedPrice);
+  }
+
+  function test_currentPrice_whenReserveTokenHasLessThan18Decimals_shouldReturnCorrectPrice() public {
+    bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange3);
+    // formula: price = reserveBalance / tokenSupply * reserveRatio
+    // calculation: 60_000 / 300_000 * 0.2 = 1
+    uint256 expectedPrice = 1e6;
     uint256 price = bancorExchangeProvider.currentPrice(exchangeId);
     assertEq(price, expectedPrice);
   }
@@ -1628,6 +1819,34 @@ contract BancorExchangeProviderTest_swapIn is BancorExchangeProviderTest {
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange3);
     uint256 reserveBalanceBefore = poolExchange3.reserveBalance;
     uint256 tokenSupplyBefore = poolExchange3.tokenSupply;
+
+    uint256 expectedAmountOut = bancorExchangeProvider.getAmountOut({
+      exchangeId: exchangeId,
+      tokenIn: address(reserveTokenWith6Decimals),
+      tokenOut: address(token),
+      amountIn: amountIn
+    });
+    vm.prank(brokerAddress);
+    uint256 amountOut = bancorExchangeProvider.swapIn(
+      exchangeId,
+      address(reserveTokenWith6Decimals),
+      address(token),
+      amountIn
+    );
+    assertEq(amountOut, expectedAmountOut);
+
+    (, , uint256 tokenSupplyAfter, uint256 reserveBalanceAfter, , ) = bancorExchangeProvider.exchanges(exchangeId);
+
+    assertEq(reserveBalanceAfter, reserveBalanceBefore + amountIn * 1e12);
+    assertEq(tokenSupplyAfter, tokenSupplyBefore + amountOut);
+  }
+
+  function test_swapIn_whenTokenInIsReserveAssetWith6Decimals_shouldSwapIn() public {
+    BancorExchangeProvider bancorExchangeProvider = initializeBancorExchangeProvider();
+    uint256 amountIn = 1e6;
+
+    bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange3);
+    (, , uint256 tokenSupplyBefore, uint256 reserveBalanceBefore, , ) = bancorExchangeProvider.exchanges(exchangeId);
 
     uint256 expectedAmountOut = bancorExchangeProvider.getAmountOut({
       exchangeId: exchangeId,
@@ -1845,6 +2064,34 @@ contract BancorExchangeProviderTest_swapOut is BancorExchangeProviderTest {
     bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange3);
     uint256 reserveBalanceBefore = poolExchange3.reserveBalance;
     uint256 tokenSupplyBefore = poolExchange3.tokenSupply;
+
+    uint256 expectedAmountIn = bancorExchangeProvider.getAmountIn({
+      exchangeId: exchangeId,
+      tokenIn: address(reserveTokenWith6Decimals),
+      tokenOut: address(token),
+      amountOut: amountOut
+    });
+    vm.prank(brokerAddress);
+    uint256 amountIn = bancorExchangeProvider.swapOut(
+      exchangeId,
+      address(reserveTokenWith6Decimals),
+      address(token),
+      amountOut
+    );
+    assertEq(amountIn, expectedAmountIn);
+
+    (, , uint256 tokenSupplyAfter, uint256 reserveBalanceAfter, , ) = bancorExchangeProvider.exchanges(exchangeId);
+
+    assertApproxEqRel(reserveBalanceAfter, reserveBalanceBefore + amountIn * 1e12, 1e18 * 0.0001);
+    assertEq(tokenSupplyAfter, tokenSupplyBefore + amountOut);
+  }
+
+  function test_swapOut_whenTokenInIsReserveAssetWith6Decimals_shouldSwapIn() public {
+    BancorExchangeProvider bancorExchangeProvider = initializeBancorExchangeProvider();
+    uint256 amountOut = 1e18;
+
+    bytes32 exchangeId = bancorExchangeProvider.createExchange(poolExchange3);
+    (, , uint256 tokenSupplyBefore, uint256 reserveBalanceBefore, , ) = bancorExchangeProvider.exchanges(exchangeId);
 
     uint256 expectedAmountIn = bancorExchangeProvider.getAmountIn({
       exchangeId: exchangeId,

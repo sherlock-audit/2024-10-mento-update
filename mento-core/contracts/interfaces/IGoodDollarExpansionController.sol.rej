@@ -1,5 +1,5 @@
 diff a/mento-core/contracts/interfaces/IGoodDollarExpansionController.sol b/mento-core/contracts/interfaces/IGoodDollarExpansionController.sol	(rejected hunks)
-@@ -148,10 +148,24 @@ interface IGoodDollarExpansionController {
+@@ -148,10 +149,24 @@ interface IGoodDollarExpansionController {
    function mintUBIFromExpansion(bytes32 exchangeId) external returns (uint256 amountMinted);
  
    /**

@@ -48,7 +48,7 @@ diff a/mento-core/contracts/goodDollar/GoodDollarExpansionController.sol b/mento
      require(expansionRate > 0, "Expansion rate must be greater than 0");
      require(expansionFrequency > 0, "Expansion frequency must be greater than 0");
  
-@@ -154,7 +156,9 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
+@@ -154,7 +158,9 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
      IBancorExchangeProvider.PoolExchange memory exchange = IBancorExchangeProvider(address(goodDollarExchangeProvider))
        .getPoolExchange(exchangeId);
  
@@ -59,7 +59,7 @@ diff a/mento-core/contracts/goodDollar/GoodDollarExpansionController.sol b/mento
      uint256 additionalReserveBalance = contractReserveBalance - exchange.reserveBalance;
      if (additionalReserveBalance > 0) {
        amountMinted = goodDollarExchangeProvider.mintFromInterest(exchangeId, additionalReserveBalance);
-@@ -172,11 +176,10 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
+@@ -172,11 +178,10 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
        .getPoolExchange(exchangeId);
      ExchangeExpansionConfig memory config = getExpansionConfig(exchangeId);
  
@@ -73,7 +73,7 @@ diff a/mento-core/contracts/goodDollar/GoodDollarExpansionController.sol b/mento
        amountMinted = goodDollarExchangeProvider.mintFromExpansion(exchangeId, reserveRatioScalar);
  
        IGoodDollar(exchange.tokenAddress).mint(address(distributionHelper), amountMinted);
-@@ -190,12 +193,24 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
+@@ -190,12 +195,24 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
  
    /// @inheritdoc IGoodDollarExpansionController
    function mintRewardFromReserveRatio(bytes32 exchangeId, address to, uint256 amount) external onlyAvatar {
@@ -99,7 +99,7 @@ diff a/mento-core/contracts/goodDollar/GoodDollarExpansionController.sol b/mento
      IGoodDollar(exchange.tokenAddress).mint(to, amount);
  
      // Ignored, because contracts only interacts with trusted contracts and tokens
-@@ -219,20 +234,26 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
+@@ -219,20 +236,26 @@ contract GoodDollarExpansionController is IGoodDollarExpansionController, Pausab
  
    /**
     * @notice Calculates the reserve ratio scalar for the given expansion config.

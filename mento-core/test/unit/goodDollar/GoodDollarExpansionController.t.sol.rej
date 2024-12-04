@@ -1,13 +1,21 @@
 diff a/mento-core/test/unit/goodDollar/GoodDollarExpansionController.t.sol b/mento-core/test/unit/goodDollar/GoodDollarExpansionController.t.sol	(rejected hunks)
-@@ -5,6 +5,7 @@ pragma solidity 0.8.18;
+@@ -5,12 +5,15 @@ pragma solidity 0.8.18;
  
  import { Test } from "forge-std/Test.sol";
  import { ERC20Mock } from "openzeppelin-contracts-next/contracts/mocks/ERC20Mock.sol";
 +import { ERC20DecimalsMock } from "openzeppelin-contracts-next/contracts/mocks/ERC20DecimalsMock.sol";
  import { GoodDollarExpansionController } from "contracts/goodDollar/GoodDollarExpansionController.sol";
++import { GoodDollarExchangeProvider } from "contracts/goodDollar/GoodDollarExchangeProvider.sol";
  
  import { IGoodDollarExpansionController } from "contracts/interfaces/IGoodDollarExpansionController.sol";
-@@ -326,6 +327,37 @@ contract GoodDollarExpansionControllerTest_mintUBIFromReserveBalance is GoodDoll
+ import { IGoodDollarExchangeProvider } from "contracts/interfaces/IGoodDollarExchangeProvider.sol";
+ import { IBancorExchangeProvider } from "contracts/interfaces/IBancorExchangeProvider.sol";
+ import { IDistributionHelper } from "contracts/goodDollar/interfaces/IGoodProtocol.sol";
++import { IReserve } from "contracts/interfaces/IReserve.sol";
+ 
+ import { GoodDollarExpansionControllerHarness } from "test/utils/harnesses/GoodDollarExpansionControllerHarness.sol";
+ 
+@@ -326,6 +329,37 @@ contract GoodDollarExpansionControllerTest_mintUBIFromReserveBalance is GoodDoll
      assertEq(amountMinted, 0);
    }
  
@@ -45,7 +53,7 @@ diff a/mento-core/test/unit/goodDollar/GoodDollarExpansionController.t.sol b/men
    function test_mintUBIFromReserveBalance_whenAdditionalReserveBalanceIsLargerThan0_shouldMintAndEmit() public {
      uint256 amountToMint = 1000e18;
      uint256 additionalReserveBalance = 1000e18;
-@@ -370,7 +402,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
+@@ -370,7 +404,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
      expansionController.mintUBIFromExpansion("NotSetExchangeId");
    }
  
@@ -54,7 +62,7 @@ diff a/mento-core/test/unit/goodDollar/GoodDollarExpansionController.t.sol b/men
      // doing one initial expansion to not be first expansion
      // since on first expansion the expansion is always applied once.
      expansionController.mintUBIFromExpansion(exchangeId);
-@@ -378,8 +410,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
+@@ -378,8 +412,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
      IGoodDollarExpansionController.ExchangeExpansionConfig memory config = expansionController.getExpansionConfig(
        exchangeId
      );
@@ -64,7 +72,7 @@ diff a/mento-core/test/unit/goodDollar/GoodDollarExpansionController.t.sol b/men
  
      assertEq(expansionController.mintUBIFromExpansion(exchangeId), 0);
    }
-@@ -465,14 +496,11 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
+@@ -465,14 +498,11 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
      // 1 day has passed since last expansion and expansion rate is 1% so the rate passed to the exchangeProvider
      // should be 0.99^1 = 0.99
      uint256 reserveRatioScalar = 1e18 * 0.99;
@@ -80,7 +88,17 @@ diff a/mento-core/test/unit/goodDollar/GoodDollarExpansionController.t.sol b/men
      vm.expectCall(
        exchangeProvider,
        abi.encodeWithSelector(
-@@ -496,7 +527,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
+@@ -486,6 +516,9 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
+       abi.encodeWithSelector(IDistributionHelper(distributionHelper).onDistribution.selector, amountToMint)
+     );
+ 
++    vm.expectEmit(true, true, true, true);
++    emit ExpansionUBIMinted(exchangeId, amountToMint);
++
+     uint256 amountMinted = expansionController.mintUBIFromExpansion(exchangeId);
+     IGoodDollarExpansionController.ExchangeExpansionConfig memory config = expansionController.getExpansionConfig(
+       exchangeId
+@@ -496,7 +529,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
      assertEq(config.lastExpansion, block.timestamp);
    }
  
@@ -89,7 +107,7 @@ diff a/mento-core/test/unit/goodDollar/GoodDollarExpansionController.t.sol b/men
      // doing one initial expansion to not be first expansion
      // since on first expansion the expansion is always applied once.
      expansionController.mintUBIFromExpansion(exchangeId);
-@@ -505,7 +536,12 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
+@@ -505,7 +538,12 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
      // should be 0.99^3 = 0.970299
      uint256 reserveRatioScalar = 1e18 * 0.970299;
  
@@ -103,7 +121,7 @@ diff a/mento-core/test/unit/goodDollar/GoodDollarExpansionController.t.sol b/men
  
      uint256 amountToMint = 1000e18;
      uint256 distributionHelperBalanceBefore = token.balanceOf(distributionHelper);
-@@ -533,7 +569,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
+@@ -533,7 +571,7 @@ contract GoodDollarExpansionControllerTest_mintUBIFromExpansion is GoodDollarExp
  
      assertEq(amountMinted, amountToMint);
      assertEq(token.balanceOf(distributionHelper), distributionHelperBalanceBefore + amountToMint);
@@ -112,7 +130,7 @@ diff a/mento-core/test/unit/goodDollar/GoodDollarExpansionController.t.sol b/men
    }
  }
  
-@@ -543,18 +579,14 @@ contract GoodDollarExpansionControllerTest_getExpansionScalar is GoodDollarExpan
+@@ -543,18 +581,14 @@ contract GoodDollarExpansionControllerTest_getExpansionScalar is GoodDollarExpan
    function setUp() public override {
      super.setUp();
      expansionController = new GoodDollarExpansionControllerHarness(false);
@@ -137,7 +155,7 @@ diff a/mento-core/test/unit/goodDollar/GoodDollarExpansionController.t.sol b/men
    }
  
    function testFuzz_getExpansionScaler(
-@@ -570,9 +602,11 @@ contract GoodDollarExpansionControllerTest_getExpansionScalar is GoodDollarExpan
+@@ -570,9 +604,11 @@ contract GoodDollarExpansionControllerTest_getExpansionScalar is GoodDollarExpan
  
      skip(lastExpansion + timeDelta);
  
@@ -152,7 +170,7 @@ diff a/mento-core/test/unit/goodDollar/GoodDollarExpansionController.t.sol b/men
      assert(scaler >= 0 && scaler <= 1e18);
    }
  }
-@@ -611,6 +645,12 @@ contract GoodDollarExpansionControllerTest_mintRewardFromReserveRatio is GoodDol
+@@ -611,6 +647,12 @@ contract GoodDollarExpansionControllerTest_mintRewardFromReserveRatio is GoodDol
      expansionController.mintRewardFromReserveRatio(exchangeId, makeAddr("To"), 0);
    }
  

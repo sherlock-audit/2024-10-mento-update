@@ -13,7 +13,7 @@ diff a/mento-core/contracts/goodDollar/GoodDollarExchangeProvider.sol b/mento-co
  
      uint32 newRatioUint = uint32(unwrap(newRatio) / 1e10);
      require(newRatioUint > 0, "New ratio must be greater than 0");
-@@ -190,21 +195,31 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
+@@ -190,21 +194,31 @@ contract GoodDollarExchangeProvider is IGoodDollarExchangeProvider, BancorExchan
    /**
     * @inheritdoc IGoodDollarExchangeProvider
     * @dev Calculates the new reserve ratio needed to mint the G$ reward while keeping the current price the same.
